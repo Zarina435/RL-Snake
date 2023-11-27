@@ -118,32 +118,13 @@ class SnakeEnv(gym.Env):
         
         # On collision kill the snake and print the score
         if self.truncated or collision_with_self(self.snake_position) == 1:
-            
-            '''font = cv2.FONT_HERSHEY_SIMPLEX
-            self.img = np.zeros((500,500,3),dtype='uint8')
-            cv2.putText(self.img,'Your Score is {}'.format(self.score),(140,250), font, 1,(255,255,255),2,cv2.LINE_AA)
-            cv2.imshow('a',self.img)'''
             self.done = True
-        
-
-
-        euclidean_dist_to_apple = np.linalg.norm(np.array(self.snake_head) - np.array(self.apple_position))
-
-        # self.total_reward = ((250 - euclidean_dist_to_apple) + apple_reward)/100
-
-        #print(self.total_reward)
-
-
-        #self.reward = self.total_reward - self.prev_reward
-        #self.reward = self.total_reward
-        #self.prev_reward = self.total_reward
 
         self.reward=apple_reward
 
         if self.done:
             self.reward = -10
         info = {}
-
 
         head_x = self.snake_head[0]
         head_y = self.snake_head[1]
@@ -152,10 +133,53 @@ class SnakeEnv(gym.Env):
         apple_delta_x = self.apple_position[0] - head_x
         apple_delta_y = self.apple_position[1] - head_y
 
-        # create observation:
+        #Puntos junto a la cabeza.
+        point_l=[head_x-10,head_y]
+        point_r=[head_x+10,head_y]
+        point_u=[head_x,head_y-10]
+        point_d=[head_x,head_y+10]
+        #Direcciones.
+        dir_l=self.button_direction==0
+        dir_r=self.button_direction==1
+        dir_u=self.button_direction==2
+        dir_d=self.button_direction==3
+        #Posición manzana.
+        apple_x=self.apple_position[0]
+        apple_y=self.apple_position[1]
 
-        observation = [head_x, head_y, apple_delta_x, apple_delta_y, snake_length] + list(self.prev_actions)
-        observation = np.array(observation)
+        # create observation:
+        observation = [
+            #Si se choca yendo recto.
+            (dir_r and collision_with_boundaries(point_r)) or
+            (dir_l and collision_with_boundaries(point_l)) or
+            (dir_u and collision_with_boundaries(point_u)) or
+            (dir_d and collision_with_boundaries(point_d)),
+
+            #Si se choca yendo a la derecha.
+            (dir_u and collision_with_boundaries(point_r)) or
+            (dir_d and collision_with_boundaries(point_l)) or
+            (dir_l and collision_with_boundaries(point_u)) or
+            (dir_r and collision_with_boundaries(point_d)),
+
+            #Si se choca yendo a la izquierda.
+            (dir_d and collision_with_boundaries(point_r)) or
+            (dir_u and collision_with_boundaries(point_l)) or
+            (dir_r and collision_with_boundaries(point_u)) or
+            (dir_l and collision_with_boundaries(point_d)),
+            
+            #Direcciones.
+            dir_l,
+            dir_r,
+            dir_u,
+            dir_d,
+
+            #Donde está la manzana.
+            apple_x<head_x,
+            apple_x>head_x,
+            apple_y<head_y,
+            apple_y>head_y,
+        ]
+        observation = np.array(observation, dtype=int)
 
         return observation, self.reward, self.done, self.truncated, info
 
@@ -192,8 +216,8 @@ class SnakeEnv(gym.Env):
         #Puntos junto a la cabeza.
         point_l=[head_x-10,head_y]
         point_r=[head_x+10,head_y]
-        point_u=[head_x,head_y-20]
-        point_d=[head_x,head_y+20]
+        point_u=[head_x,head_y-10]
+        point_d=[head_x,head_y+10]
         #Direcciones.
         dir_l=self.button_direction==0
         dir_r=self.button_direction==1
@@ -226,6 +250,7 @@ class SnakeEnv(gym.Env):
             dir_u,
             dir_d,
 
+            #Donde está la manzana.
             apple_x<head_x,
             apple_x>head_x,
             apple_y<head_y,
